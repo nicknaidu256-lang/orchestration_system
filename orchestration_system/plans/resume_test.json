@@ -1,0 +1,38 @@
+{
+  "workflow_id": "resume_test",
+  "version": "1.0",
+  "created_by": "test",
+  "plan_hash": "ae4c6c97468dd5da108af5542428f0bfce5f221b37dde07275f417f581f4e741",
+  "steps": [
+    {
+      "id": "step_a",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/a.txt",
+        "content": "A",
+        "output_key": "out_a"
+      },
+      "outputs": [
+        "out_a"
+      ],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "step_b",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/b.txt",
+        "content": "B",
+        "output_key": "out_b"
+      },
+      "outputs": [
+        "out_b"
+      ],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    }
+  ]
+}

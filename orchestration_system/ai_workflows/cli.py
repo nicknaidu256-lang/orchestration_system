@@ -52,17 +52,24 @@ def cmd_run(args):
         print(f"Error: Invalid plan: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Create run directory
+    # Resolve run directory
     runs_base = Path.home() / ".ai-workflows" / "runs"
-    run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + plan["workflow_id"][:8]
-    run_dir = runs_base / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
 
-    # Save plan copy to run_dir for provenance
-    (run_dir / "plan.json").write_text(json.dumps(plan, indent=2))
+    if args.resume:
+        run_id = args.resume
+        run_dir = runs_base / run_id
+        if not run_dir.exists():
+            print(f"Error: Run directory to resume not found: {run_dir}", file=sys.stderr)
+            sys.exit(1)
+        print(f"Resuming workflow: {plan['workflow_id']} (Run ID: {run_id})")
+    else:
+        run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + plan["workflow_id"][:8]
+        run_dir = runs_base / run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+        # Save plan copy to run_dir for provenance
+        (run_dir / "plan.json").write_text(json.dumps(plan, indent=2))
+        print(f"Starting workflow: {plan['workflow_id']} v{plan.get('version', '?')}")
 
-    print(f"Starting workflow: {plan['workflow_id']} v{plan.get('version', '?')}")
-    print(f"Run ID: {run_id}")
     print(f"Run dir: {run_dir}")
 
     # Execute
@@ -216,6 +223,7 @@ def main():
     run_parser = subparsers.add_parser("run", help="Execute a workflow plan")
     run_parser.add_argument("plan", help="Path to plan JSON file")
     run_parser.add_argument("--run-id", help="Custom run identifier (default: timestamp)")
+    run_parser.add_argument("--resume", help="Run ID to resume")
     run_parser.add_argument("--input", action="append", help="Initial state key=value")
     run_parser.set_defaults(func=cmd_run)
 

@@ -1,6 +1,12 @@
 """
 LLMAgent — handles text_generation and code_generation capabilities.
 Uses Cerebras API. Falls back to placeholder if API unavailable.
+
+Output contract:
+- Always returns {"outputs": {"content": str, "model": str, "tokens_used": int}}
+- The executor handles output key aliasing: if a step declares a single output key
+  other than "content", the executor maps content → declared_key automatically.
+- Do NOT add plan-specific key aliases here. That is a plan concern, not an agent concern.
 """
 import os
 import json
@@ -62,9 +68,7 @@ class LLMAgent:
             if fmt in ("python", "javascript", "bash", "json"):
                 content = content.strip()
                 if content.startswith("```"):
-                    # Remove opening fence (e.g. ```python or ```)
                     content = content.split("\n", 1)[1] if "\n" in content else content
-                    # Remove closing fence
                     if content.endswith("```"):
                         content = content.rsplit("```", 1)[0].strip()
 

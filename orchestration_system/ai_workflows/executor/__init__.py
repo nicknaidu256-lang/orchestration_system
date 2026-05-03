@@ -240,6 +240,23 @@ def _execute_single_step(
                 )
 
             outputs_dict = result["outputs"]
+
+            # ── SINGLE-KEY OUTPUT ALIASING ───────────────────────
+            # If the step declares exactly one output key, that key is not
+            # present in the agent's outputs, but the agent returned a
+            # "content" key — alias content → declared_key automatically.
+            # This lets LLMAgent stay clean (always returns "content") while
+            # plans declare semantically-named keys like "summary" or
+            # "job_requirements" without needing hardcoded aliases in the agent.
+            declared = step["outputs"]
+            if (
+                len(declared) == 1
+                and declared[0] not in outputs_dict
+                and "content" in outputs_dict
+            ):
+                outputs_dict = dict(outputs_dict)  # don't mutate the original
+                outputs_dict[declared[0]] = outputs_dict["content"]
+
             missing = [k for k in step["outputs"] if k not in outputs_dict]
             if missing:
                 raise StepFailure(

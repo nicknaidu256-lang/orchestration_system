@@ -1,0 +1,33 @@
+{
+  "capability": "agent_name",
+  "description": "Maps workflow capabilities to concrete agent implementations.",
+  "mapping": {
+    "code_generation": "llm_agent",
+    "file_write": "local_fs",
+    "text_generation": "llm_agent",
+    "text_parsing": "terminal",
+    "docx_read": "terminal",
+    "llm_text_generation": "terminal",
+    "docx_write": "docx_agent",
+    "ats_analysis": "terminal",
+    "web_search": "web_search_agent",
+    "browser_automation": "terminal",
+    "shell_command": "terminal",
+    "docx_manipulation": "terminal",
+    "github_api": "terminal",
+    "github_create_repo": "terminal",
+    "git_clone": "terminal",
+    "file_copy": "local_fs",
+    "git_status": "terminal",
+    "git_add": "terminal",
+    "git_commit": "terminal",
+    "git_push": "terminal",
+    "package_installer": "terminal",
+    "test_runner": "terminal",
+    "graphify_setup": "terminal",
+    "graphify_generate": "terminal",
+    "graphify_verify": "terminal",
+    "graphify_query": "terminal",
+    "report_builder": "terminal"
+  }
+}

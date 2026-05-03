@@ -1,0 +1,49 @@
+{
+  "workflow_id": "replan_test",
+  "version": "1.0",
+  "created_by": "test",
+  "plan_hash": "a318b5a85f727572d55c34dffdea9b168c62840f25756929836182c374cdd59e",
+  "steps": [
+    {
+      "id": "step_success",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/replan_test_before.txt",
+        "content": "step 1 done"
+      },
+      "outputs": [
+        "before_file"
+      ],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "step_will_fail",
+      "capability": "shell_command",
+      "inputs": {
+        "command": "exit 1"
+      },
+      "outputs": [
+        "echo_result"
+      ],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "step_after_fail",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/replan_test_after.txt",
+        "content": "step 3 done"
+      },
+      "outputs": [
+        "after_file"
+      ],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    }
+  ]
+}

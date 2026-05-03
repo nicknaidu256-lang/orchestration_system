@@ -25,9 +25,10 @@ from ai_workflows.errors import (
     StepFailure,
     UnknownCapabilityError,
 )
-from ai_workflows.registry import load_registry, get_agent
+from ai_workflows.registry import load_registry, get_agent, load_registry as load_registry_func
 from ai_workflows.resolve_inputs import resolve_inputs
 from ai_workflows.state import StateManager
+from ai_workflows.planner.replanner import Replanner
 
 
 def compute_plan_hash(steps: list) -> str:
@@ -105,7 +106,8 @@ def run_executor(
         execution_units.append(current_group)
 
     # ── STEP 2: EXECUTION LOOP ──────────────────────────────────
-    for unit in execution_units:
+    replanner = Replanner()
+    for unit_index, unit in enumerate(execution_units):
         if isinstance(unit, list):
             # Parallel execution
             with ThreadPoolExecutor() as executor:
@@ -117,7 +119,41 @@ def run_executor(
                     future.result()
         else:
             # Sequential execution
-            _execute_single_step(unit, state, registry, plan_hash, run_id, agent_kwargs, state_lock)
+            try:
+                _execute_single_step(unit, state, registry, plan_hash, run_id, agent_kwargs, state_lock)
+            except Exception as e:
+                # Do NOT replan if it's a structural error that won't be fixed by replanning
+                if isinstance(e, MissingStateError):
+                    raise e
+
+                # Attempt dynamic replan before halting
+                completed_step_ids = {s["id"] for s in plan["steps"][:unit_index]}
+                remaining = [
+                    s for s in plan["steps"]
+                    if s["id"] not in completed_step_ids and s["id"] != unit["id"]
+                ]
+
+                # Load fresh registry for replanner
+                package_root = Path(__file__).parent.parent
+                registry_path = package_root / "registry" / "registry.json"
+                registry_data = load_registry(registry_path)
+
+                revised = replanner.replan(unit, state.read_all(), remaining, registry_data)
+
+                if revised is None or len(revised) == 0:
+                    # Replanning failed or not possible — halt as before
+                    raise StepFailure(
+                        step=unit,
+                        resolved_inputs={},
+                        missing_output="unknown",
+                        message=f"Replanning failed: {e}"
+                    ) from e
+                else:
+                    # Replace remaining execution units with revised steps
+                    # Sequential only for revised steps
+                    execution_units[unit_index+1:] = revised
+                    print(f"[Executor] Replanned — continuing with {len(revised)} revised steps.")
+                    continue # loop continues to next execution unit
 
 def _execute_single_step(
     step: dict,

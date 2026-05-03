@@ -74,7 +74,7 @@ def pause_for_approval(step: dict, inputs: dict):
         )
 
 
-def run_workflow(plan: dict, run_dir: Path, agent_kwargs: dict = None):
+def run_workflow(plan: dict, run_dir: Path, agent_kwargs: dict = None, initial_state: dict = None):
     """
     Entry point for running a workflow.
     Initializes state and runs the executor loop.
@@ -83,6 +83,10 @@ def run_workflow(plan: dict, run_dir: Path, agent_kwargs: dict = None):
     from ai_workflows.registry import load_registry
 
     state = StateManager(run_dir)
+    if initial_state:
+        # Atomic initial state write
+        state._atomic_write({"status": {**{k: "completed" for k in initial_state}, **state._state.get("status", {})}, **initial_state})
+
     # The registry is relative to the package root
     package_root = Path(__file__).parent.parent
     registry_path = package_root / "registry" / "registry.json"

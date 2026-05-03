@@ -13,47 +13,41 @@ from ai_workflows.agents import Agent
 class LocalFSAgent(Agent):
     """
     Agent for local filesystem operations.
-    Capability: "file_write"
+    Capability: "file_write", "file_read"
 
     Optional input: output_key (str)
-        When provided, the agent adds {output_key: True} to the outputs dict.
-        This lets plan steps declare a semantically-named output key
-        (e.g. "summary_written") rather than the agent's fixed keys,
-        avoiding StepFailure on output-key validation.
-
-        Without output_key, the agent returns only the fixed keys:
-        {"success": bool, "path": str, "output_code": str}
-
-        With output_key="summary_written", it returns:
-        {"success": bool, "path": str, "output_code": str, "summary_written": True}
+        When provided, the agent adds {output_key: True} to the outputs dict
+        (for file_write only).
     """
 
     def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute file operations.
 
-        Expected inputs (after resolution):
-        - path: str (file path to write, or 'file_name' for backward compatibility)
-        - content: str (file contents)
-        - output_key: str (optional — adds {output_key: True} to outputs)
-        - operation: "file_write" (default if not provided)
-
-        Returns:
-            {"outputs": {"success": bool, "path": str, "output_code": str[, output_key: True]}}
+        Inputs:
+        - operation: "file_write" (default) or "file_read"
+        - path: str (file path)
+        - content: str (required for file_write)
+        - output_key: str (optional, for file_write)
         """
         operation = inputs.get("operation", "file_write")
 
-        # Handle code generation inputs for compatibility
-        if operation == "file_write":
-            if "file_name" in inputs:
-                path_str = inputs.get("file_name")
-                content = inputs.get("content")
-            elif "destination_folder" in inputs and "file_content" in inputs:
-                path_str = os.path.join(inputs.get("destination_folder"), "output.py")
-                content = inputs.get("file_content")
-            else:
-                path_str = inputs.get("path")
-                content = inputs.get("content")
+        if operation == "file_read":
+            path_str = inputs.get("path")
+            if not path_str:
+                raise ValueError("file_read requires 'path' parameter.")
+            path = Path(path_str)
+            if not path.exists():
+                raise FileNotFoundError(f"File not found: {path_str}")
+            return {"outputs": {"content": path.read_text(encoding="utf-8"), "file_path": str(path.resolve())}}
+
+        # Handle file_write operations
+        if "file_name" in inputs:
+            path_str = inputs.get("file_name")
+            content = inputs.get("content")
+        elif "destination_folder" in inputs and "file_content" in inputs:
+            path_str = os.path.join(inputs.get("destination_folder"), "output.py")
+            content = inputs.get("file_content")
         else:
             path_str = inputs.get("path")
             content = inputs.get("content")
@@ -74,8 +68,6 @@ class LocalFSAgent(Agent):
             "output_code": content,
         }
 
-        # If the plan step declared a semantic output key, include it so the
-        # executor's output-key validation passes without a StepFailure.
         output_key = inputs.get("output_key")
         if output_key:
             outputs[output_key] = True

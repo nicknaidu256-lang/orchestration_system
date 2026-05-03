@@ -3,6 +3,7 @@
   "description": "Maps workflow capabilities to concrete agent implementations.",
   "mapping": {
     "code_generation": "llm_agent",
+    "file_read": "local_fs",
     "file_write": "local_fs",
     "text_generation": "llm_agent",
     "text_parsing": "terminal",

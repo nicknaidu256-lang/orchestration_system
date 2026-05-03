@@ -1,0 +1,22 @@
+{
+  "workflow_id": "docx_read_test",
+  "version": "1.0",
+  "created_by": "test",
+  "plan_hash": "f6d26cca9a6bc597ac2a96f534977e985458876e49fbff95cefe81823e12be6f",
+  "steps": [
+    {
+      "id": "step_1",
+      "capability": "docx_read",
+      "inputs": {
+        "operation": "docx_read",
+        "path": "test_input.docx"
+      },
+      "outputs": [
+        "content"
+      ],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    }
+  ]
+}

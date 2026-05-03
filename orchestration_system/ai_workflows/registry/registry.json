@@ -9,6 +9,7 @@
     "text_parsing": "terminal",
     "docx_read": "terminal",
     "llm_text_generation": "terminal",
+    "docx_read": "docx_agent",
     "docx_write": "docx_agent",
     "ats_analysis": "terminal",
     "web_search": "web_search_agent",

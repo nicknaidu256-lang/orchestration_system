@@ -1,0 +1,167 @@
+{
+  "workflow_id": "resume_tailoring_v2",
+  "version": "2.0",
+  "created_by": "hermes",
+  "plan_hash": "d8a0dc770dc2d23969ef8315f721323c52c4715940c315fa629dc93def67f314",
+  "steps": [
+    {
+      "id": "read_job_description",
+      "capability": "file_read",
+      "inputs": {
+        "operation": "file_read",
+        "path": "$job_file"
+      },
+      "outputs": [
+        "job_description"
+      ],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "read_existing_resume",
+      "capability": "docx_read",
+      "inputs": {
+        "operation": "docx_read",
+        "path": "$resume_file"
+      },
+      "outputs": [
+        "existing_resume_text"
+      ],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "extract_job_requirements",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "You are a professional resume writer. Extract the key requirements from this job description into a concise summary covering: role title, required technical skills, preferred skills, and main responsibilities. Job description: $job_description",
+        "format": "plain"
+      },
+      "outputs": [
+        "job_requirements"
+      ],
+      "idempotent": false,
+      "retryable": true,
+      "requires_approval": false
+    },
+    {
+      "id": "generate_summary",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "Write a professional 2-3 sentence resume summary in first person, present tense, for a candidate whose background is: $existing_resume_text Tailor it specifically to this role: $job_requirements",
+        "format": "plain"
+      },
+      "outputs": [
+        "resume_summary"
+      ],
+      "idempotent": false,
+      "retryable": true,
+      "requires_approval": false
+    },
+    {
+      "id": "generate_bullets",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "You are a resume writer. Your ONLY job is to produce bullet points. Output NOTHING except bullet lines \u00e2\u20ac\u201d no headers, no summary, no skills section, no name, no contact info. Only bullets.\n\nExtract and rewrite the experience content from this resume as 4-6 strong resume bullets:\n$existing_resume_text\n\nEach bullet must:\n- Start with the bullet character \u00e2\u20ac\u00a2\n- Begin with a strong action verb (e.g. Built, Reduced, Led, Designed)\n- Include a metric or outcome\n- Be tailored to this target role: $job_requirements\n\nOutput only the bullet lines. Nothing else.",
+        "format": "plain"
+      },
+      "outputs": [
+        "experience_bullets"
+      ],
+      "idempotent": false,
+      "retryable": true,
+      "requires_approval": false
+    },
+    {
+      "id": "generate_skills",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "From this candidate's background: $existing_resume_text Generate a skills section as a comma-separated list of 8-10 technical skills prioritised by relevance to: $job_requirements",
+        "format": "plain"
+      },
+      "outputs": [
+        "skills_section"
+      ],
+      "idempotent": false,
+      "retryable": true,
+      "requires_approval": false
+    },
+    {
+      "id": "assemble_resume",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "Assemble a clean plain-text resume. Use ONLY the content provided below \u00e2\u20ac\u201d do not invent anything. Format professionally with clear headers.\n\nSUMMARY:\n$resume_summary\n\nSKILLS:\n$skills_section\n\nEXPERIENCE:\n$experience_bullets\n\nReturn the complete formatted resume text only.",
+        "format": "plain"
+      },
+      "outputs": [
+        "full_resume_text"
+      ],
+      "idempotent": false,
+      "retryable": true,
+      "requires_approval": false
+    },
+    {
+      "id": "save_resume",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/Tailored_Resume.txt",
+        "content": "$full_resume_text",
+        "output_key": "resume_saved"
+      },
+      "outputs": [
+        "resume_saved"
+      ],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "ats_analysis",
+      "capability": "ats_analysis",
+      "inputs": {
+        "resume_text": "$full_resume_text",
+        "job_description": "$job_description"
+      },
+      "outputs": [
+        "ats_score",
+        "matched_keywords",
+        "missing_keywords",
+        "recommendations"
+      ],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "format_ats_report",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "Format this ATS analysis as a clean plain-text report:\n\nATS Compatibility Score: $ats_score / 100\n\nTop Keyword Matches: $matched_keywords\n\nMissing Keywords: $missing_keywords\n\nRecommendations: $recommendations",
+        "format": "plain"
+      },
+      "outputs": [
+        "ats_report_text"
+      ],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "save_ats_report",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/ATS_Report.txt",
+        "content": "$ats_report_text",
+        "output_key": "ats_saved"
+      },
+      "outputs": [
+        "ats_saved"
+      ],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    }
+  ]
+}

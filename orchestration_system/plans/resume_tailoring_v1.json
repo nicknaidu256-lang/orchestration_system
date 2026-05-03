@@ -2,14 +2,13 @@
   "workflow_id": "resume_tailoring_v1",
   "version": "2.0",
   "created_by": "hermes",
-  "plan_hash": "272b614255095ef194462ebb5c3847077f23e6d526781ed09be8d27df3dc0c92",
+  "plan_hash": "4a5f0e1c8d744091ba045fd75ac55f4a1c4b0b1f8c86d17328f21551511de86c",
   "steps": [
     {
       "id": "extract_job_requirements",
       "capability": "text_generation",
       "inputs": {
-        "job_description": "Software Engineer, AI Infrastructure at TechCorp. Required: Python, distributed systems, API design, LLM integration. Preferred: Kubernetes, cloud infrastructure, CI/CD. Build scalable AI workflow orchestration systems. 3+ years experience.",
-        "prompt": "You are a professional resume writer. Extract the key job requirements from this job description and produce a concise summary (3-5 sentences) covering: role, required skills, preferred skills, and main responsibilities. Job description: $job_description",
+        "prompt": "You are a professional resume writer. Extract the key job requirements from this job description and produce a concise summary (3-5 sentences) covering: role, required skills, preferred skills, and main responsibilities. Job description: Software Engineer, AI Infrastructure at TechCorp. Required: Python, distributed systems, API design, LLM integration. Preferred: Kubernetes, cloud infrastructure, CI/CD. Build scalable AI workflow orchestration systems. 3+ years experience.",
         "format": "plain"
       },
       "outputs": ["job_requirements"],

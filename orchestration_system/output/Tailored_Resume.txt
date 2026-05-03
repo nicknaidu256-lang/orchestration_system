@@ -1,0 +1,36 @@
+**Your Name**
+**Software Engineer - AI Infrastructure Expert**
+
+---
+
+**Summary:**
+As a highly skilled Software Engineer, I deliver innovative AI solutions by harnessing the power of Python to design and develop scalable API-based systems, seamlessly integrating Large Language Models and machine learning algorithms. I excel in building robust and cloud-agnostic infrastructure to support AI applications, with a proven ability to implement Kubernetes, CI/CD pipelines, and agile development methodologies. Currently, I craft efficient AI workflow orchestration systems and collaborate with cross-functional teams to drive AI innovation and adoption, staying at the forefront of AI/ML system development.
+
+---
+
+**Skills:**
+
+Skilled in:
+- Python programming language
+- Java
+- C++
+- Distributed systems development
+- Containerization with Docker
+- API design and implementation using RESTful and GraphQL
+- Integration with Large Language Models (LLM)
+- Kubernetes
+- Cloud infrastructure management with AWS and Azure
+- Continuous Integration (CI) with Jenkins and CircleCI
+- Continuous Deployment (CD) with AWS CodePipeline and GitHub Actions
+- Orchestration tools like Apache Airflow and Prefect
+
+---
+
+**Experience:**
+
+**Software Engineer | AI Infrastructure | 2022-Present**
+
+• Developed and deployed an AI workflow orchestration system that managed over 100 concurrent tasks, reducing execution time by 50% and improving productivity for data scientists by 200% through efficient automation and resource optimization.
+• Spearheaded the design and implementation of a Large Language Model (LLM) integration API, achieving 95% uptime and processing over 10,000 requests per minute, with a latency reduction of 30% through optimization and caching techniques.
+• Designed and maintained a scalable Kubernetes-based infrastructure for AI applications, automating the deployment and scaling of containerized workloads with a 90% reduction in manual intervention and 25% decrease in resource utilization through automated resource allocation.
+• Led the migration of a legacy AI workflow orchestration system to a cloud-based platform, achieving a 99% uptime and 75% reduction in costs through optimized resource utilization and automated scaling, and improving team collaboration through streamlined code reviews and automated testing processes.

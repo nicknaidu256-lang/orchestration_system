@@ -1,0 +1,46 @@
+{
+  "workflow_id": "parallel_test",
+  "version": "1.0",
+  "created_by": "hermes",
+  "plan_hash": "a46c13205c78e4841cff347b702e4b6060f9477b6a6e82bfb072381b8b4bc14e",
+  "steps": [
+    {
+      "id": "step_a",
+      "capability": "file_write",
+      "inputs": {"path": "output/a.txt", "content": "hello"},
+      "outputs": ["file_a"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "step_b",
+      "capability": "file_write",
+      "inputs": {"path": "output/b.txt", "content": "world"},
+      "outputs": ["file_b"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false,
+      "parallel_group": "write_files"
+    },
+    {
+      "id": "step_c",
+      "capability": "file_write",
+      "inputs": {"path": "output/c.txt", "content": "test"},
+      "outputs": ["file_c"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false,
+      "parallel_group": "write_files"
+    },
+    {
+      "id": "step_d",
+      "capability": "shell_command",
+      "inputs": {"command": "echo done"},
+      "outputs": ["echo_result"],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    }
+  ]
+}

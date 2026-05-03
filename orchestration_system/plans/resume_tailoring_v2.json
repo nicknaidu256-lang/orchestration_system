@@ -2,7 +2,7 @@
   "workflow_id": "resume_tailoring_v2",
   "version": "2.0",
   "created_by": "hermes",
-  "plan_hash": "d8a0dc770dc2d23969ef8315f721323c52c4715940c315fa629dc93def67f314",
+  "plan_hash": "f2a2fe5722a91290689f52984fa1ed9f3579dd69a364d3c2bdd38d3c5459829c",
   "steps": [
     {
       "id": "read_job_description",
@@ -103,21 +103,6 @@
       "requires_approval": false
     },
     {
-      "id": "save_resume",
-      "capability": "file_write",
-      "inputs": {
-        "path": "output/Tailored_Resume.txt",
-        "content": "$full_resume_text",
-        "output_key": "resume_saved"
-      },
-      "outputs": [
-        "resume_saved"
-      ],
-      "idempotent": false,
-      "retryable": false,
-      "requires_approval": false
-    },
-    {
       "id": "ats_analysis",
       "capability": "ats_analysis",
       "inputs": {
@@ -129,6 +114,35 @@
         "matched_keywords",
         "missing_keywords",
         "recommendations"
+      ],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "optimize_resume",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "You are a professional resume editor. Your job is to improve this resume based on ATS analysis feedback, WITHOUT inventing experience the candidate does not have.\n\nORIGINAL RESUME:\n$full_resume_text\n\nATS FEEDBACK:\n- Score: $ats_score / 100\n- Missing keywords: $missing_keywords\n- Recommendations: $recommendations\n\nRULES:\n1. Rewrite and strengthen the existing content to better surface relevant skills already present in the resume.\n2. If a missing keyword reflects a skill the candidate clearly has (e.g. \"API design\" when they built REST APIs), naturally incorporate the keyword into existing bullets or the summary.\n3. Do NOT add skills, tools, or experiences the candidate does not have. If a missing keyword (e.g. Kubernetes) has no evidence in the resume, do not add it \u00e2\u20ac\u201d leave a comment: [MISSING: Kubernetes \u00e2\u20ac\u201d candidate should add if applicable]\n4. Keep all section headers and structure identical to the original.\n5. Return only the full resume text. No explanation, no preamble.",
+        "format": "plain"
+      },
+      "outputs": [
+        "optimized_resume_text"
+      ],
+      "idempotent": false,
+      "retryable": true,
+      "requires_approval": false
+    },
+    {
+      "id": "save_resume",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/Tailored_Resume.txt",
+        "content": "$optimized_resume_text",
+        "output_key": "resume_saved"
+      },
+      "outputs": [
+        "resume_saved"
       ],
       "idempotent": false,
       "retryable": false,

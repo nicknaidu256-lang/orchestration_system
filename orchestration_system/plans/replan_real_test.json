@@ -1,0 +1,44 @@
+{
+  "workflow_id": "replan_real_test",
+  "version": "1.0",
+  "created_by": "hermes",
+  "plan_hash": "e82da0fc16a981571a673567878e15b7857b3d354b9a5f9e79978febf20eadae",
+  "steps": [
+    {
+      "id": "step_1",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "Write exactly one sentence (20-30 words) confirming that a workflow recovered successfully after a step failure. Be specific and professional.",
+        "format": "plain"
+      },
+      "outputs": ["recovery_text"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "step_2",
+      "capability": "shell_command",
+      "inputs": {
+        "command": "exit 1"
+      },
+      "outputs": ["success"],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "step_3",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/replan_recovery.txt",
+        "content": "$recovery_text",
+        "output_key": "recovery_file"
+      },
+      "outputs": ["recovery_file"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    }
+  ]
+}

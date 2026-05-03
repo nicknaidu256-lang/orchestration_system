@@ -2,7 +2,7 @@
   "workflow_id": "pipeline_validation",
   "version": "1.0",
   "created_by": "hermes",
-  "plan_hash": "bd0f0fd988c54c4e78a82480e86ca01b92bce27b8ec709575903f6bd33d030a0",
+  "plan_hash": "75ca63d7fb49301c9da129bea38d86bce05223af2380017529f0424508449ec9",
   "steps": [
     {
       "id": "step_1",
@@ -44,7 +44,8 @@
       "capability": "file_write",
       "inputs": {
         "path": "output/summary.txt",
-        "content": "$summary"
+        "content": "$summary",
+        "output_key": "summary_written"
       },
       "outputs": ["summary_written"],
       "idempotent": true,
@@ -56,7 +57,8 @@
       "capability": "file_write",
       "inputs": {
         "path": "output/print_summary.py",
-        "content": "$python_script"
+        "content": "$python_script",
+        "output_key": "script_written"
       },
       "outputs": ["script_written"],
       "idempotent": true,

@@ -9,13 +9,16 @@ Protocol enforcement:
 - On StepFailure with retryable: true, retry ONCE inside the loop (no external retry_step)
 
 Replanning policy:
-- Replanning is ONLY attempted for transient execution failures (StepFailure, generic Exception)
+- Replanning is ONLY attempted for transient execution failures (generic Exception)
 - The following errors are STRUCTURAL/INTENTIONAL HALTS and are NEVER replanned:
-    MissingStateError    — planning error (bad $ref)
-    StateConflictError   — planning error (duplicate output key)
-    ApprovalDeniedError  — user decision is final
+    MissingStateError      — planning error (bad $ref)
+    StateConflictError     — planning error (duplicate output key)
+    ApprovalDeniedError    — user decision is final
     UnknownCapabilityError — configuration error
-    CorruptStateError    — state integrity failure, needs manual inspection
+    CorruptStateError      — state integrity failure, needs manual inspection
+    StepFailure            — agent returned wrong output keys; this is a plan error,
+                             not a transient failure — replanning cannot fix a mismatched
+                             output declaration
 """
 
 import hashlib
@@ -47,6 +50,7 @@ _NO_REPLAN_ERRORS = (
     ApprovalDeniedError,
     UnknownCapabilityError,
     CorruptStateError,
+    StepFailure,  # output key mismatch = plan error, not a transient failure
 )
 
 
@@ -147,7 +151,7 @@ def run_executor(
                 if isinstance(e, _NO_REPLAN_ERRORS):
                     raise
 
-                # Transient failure — attempt dynamic replan before halting.
+                # Transient failure (generic Exception) — attempt dynamic replan before halting.
                 print(f"[Executor] Step '{unit['id']}' failed: {e}")
                 print(f"[Executor] Attempting dynamic replan...")
 
@@ -157,11 +161,10 @@ def run_executor(
                     if s["id"] not in completed_step_ids and s["id"] != unit["id"]
                 ]
 
-                package_root = Path(__file__).parent.parent
-                registry_path = package_root / "registry" / "registry.json"
-                registry_data = load_registry(registry_path)
-
-                revised = replanner.replan(unit, state.read_all(), remaining, registry_data)
+                # Use the registry that was passed in — do NOT reload from disk.
+                # Reloading from disk would ignore the registry used for the current run
+                # (e.g. a test-time registry) and introduce capability mismatches.
+                revised = replanner.replan(unit, state.read_all(), remaining, registry)
 
                 if revised is None or len(revised) == 0:
                     raise StepFailure(

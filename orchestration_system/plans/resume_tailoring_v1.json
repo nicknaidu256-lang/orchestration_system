@@ -1,0 +1,110 @@
+{
+  "workflow_id": "resume_tailoring_v1",
+  "version": "2.0",
+  "created_by": "hermes",
+  "plan_hash": "272b614255095ef194462ebb5c3847077f23e6d526781ed09be8d27df3dc0c92",
+  "steps": [
+    {
+      "id": "extract_job_requirements",
+      "capability": "text_generation",
+      "inputs": {
+        "job_description": "Software Engineer, AI Infrastructure at TechCorp. Required: Python, distributed systems, API design, LLM integration. Preferred: Kubernetes, cloud infrastructure, CI/CD. Build scalable AI workflow orchestration systems. 3+ years experience.",
+        "prompt": "You are a professional resume writer. Extract the key job requirements from this job description and produce a concise summary (3-5 sentences) covering: role, required skills, preferred skills, and main responsibilities. Job description: $job_description",
+        "format": "plain"
+      },
+      "outputs": ["job_requirements"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "generate_summary",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "Write a professional resume summary (2-3 sentences, first person, present tense) for a candidate targeting this role. Emphasize Python expertise, API development, and AI/ML systems. Job requirements: $job_requirements",
+        "format": "plain"
+      },
+      "outputs": ["resume_summary"],
+      "idempotent": false,
+      "retryable": true,
+      "requires_approval": false
+    },
+    {
+      "id": "generate_bullets",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "Write 4 strong resume bullet points for a Software Engineer with experience building AI workflow orchestration systems. Each bullet must start with a strong action verb, include a metric or outcome, and be relevant to: $job_requirements. Format: one bullet per line, each starting with a bullet character.",
+        "format": "plain"
+      },
+      "outputs": ["experience_bullets"],
+      "idempotent": false,
+      "retryable": true,
+      "requires_approval": false
+    },
+    {
+      "id": "generate_skills",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "Generate a skills section for a resume targeting this role. List 8-10 technical skills as a comma-separated line, prioritising skills mentioned in: $job_requirements",
+        "format": "plain"
+      },
+      "outputs": ["skills_section"],
+      "idempotent": false,
+      "retryable": true,
+      "requires_approval": false
+    },
+    {
+      "id": "assemble_resume",
+      "capability": "text_generation",
+      "inputs": {
+        "summary": "$resume_summary",
+        "skills": "$skills_section",
+        "bullets": "$experience_bullets",
+        "prompt": "Assemble a clean plain-text resume using these sections. Format it professionally with clear section headers.\n\nSUMMARY:\n$resume_summary\n\nSKILLS:\n$skills_section\n\nEXPERIENCE:\nSoftware Engineer | AI Infrastructure | 2022-Present\n$experience_bullets\n\nReturn the complete formatted resume text only.",
+        "format": "plain"
+      },
+      "outputs": ["full_resume_text"],
+      "idempotent": false,
+      "retryable": true,
+      "requires_approval": false
+    },
+    {
+      "id": "save_resume",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/Tailored_Resume.txt",
+        "content": "$full_resume_text",
+        "output_key": "resume_saved"
+      },
+      "outputs": ["resume_saved"],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "ats_analysis",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "You are an ATS (Applicant Tracking System) expert. Analyse this resume against the job requirements and provide: 1) An ATS compatibility score out of 100, 2) Top 3 keyword matches found, 3) Top 3 missing keywords, 4) One sentence improvement suggestion.\n\nJob requirements: $job_requirements\n\nResume: $full_resume_text",
+        "format": "plain"
+      },
+      "outputs": ["ats_feedback"],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "save_ats_report",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/ATS_Report.txt",
+        "content": "$ats_feedback",
+        "output_key": "ats_saved"
+      },
+      "outputs": ["ats_saved"],
+      "idempotent": false,
+      "retryable": false,
+      "requires_approval": false
+    }
+  ]
+}

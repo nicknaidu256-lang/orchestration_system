@@ -1,0 +1,67 @@
+{
+  "workflow_id": "pipeline_validation",
+  "version": "1.0",
+  "created_by": "hermes",
+  "plan_hash": "bd0f0fd988c54c4e78a82480e86ca01b92bce27b8ec709575903f6bd33d030a0",
+  "steps": [
+    {
+      "id": "step_1",
+      "capability": "web_search",
+      "inputs": {
+        "query": "top 3 benefits of Python"
+      },
+      "outputs": ["results"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "step_2",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "Summarize the following search results into a short paragraph: $results",
+        "format": "plain"
+      },
+      "outputs": ["summary"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "step_3",
+      "capability": "code_generation",
+      "inputs": {
+        "prompt": "Write a Python script that prints this summary: $summary",
+        "format": "python"
+      },
+      "outputs": ["python_script"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "step_4",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/summary.txt",
+        "content": "$summary"
+      },
+      "outputs": ["summary_written"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "step_5",
+      "capability": "file_write",
+      "inputs": {
+        "path": "output/print_summary.py",
+        "content": "$python_script"
+      },
+      "outputs": ["script_written"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    }
+  ]
+}

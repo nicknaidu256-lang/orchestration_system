@@ -7,6 +7,15 @@ Protocol enforcement:
 - Agent must return {"outputs": {...}}
 - Every declared output key must exist in result["outputs"]
 - On StepFailure with retryable: true, retry ONCE inside the loop (no external retry_step)
+
+Replanning policy:
+- Replanning is ONLY attempted for transient execution failures (StepFailure, generic Exception)
+- The following errors are STRUCTURAL/INTENTIONAL HALTS and are NEVER replanned:
+    MissingStateError    — planning error (bad $ref)
+    StateConflictError   — planning error (duplicate output key)
+    ApprovalDeniedError  — user decision is final
+    UnknownCapabilityError — configuration error
+    CorruptStateError    — state integrity failure, needs manual inspection
 """
 
 import hashlib
@@ -20,15 +29,25 @@ from typing import Any, Dict, List, Union
 from ai_workflows.agents.loader import load_agent
 from ai_workflows.errors import (
     ApprovalDeniedError,
+    CorruptStateError,
     MissingStateError,
     StateConflictError,
     StepFailure,
     UnknownCapabilityError,
 )
-from ai_workflows.registry import load_registry, get_agent, load_registry as load_registry_func
+from ai_workflows.registry import load_registry, get_agent
 from ai_workflows.resolve_inputs import resolve_inputs
 from ai_workflows.state import StateManager
 from ai_workflows.planner.replanner import Replanner
+
+# Errors that indicate a structural/intentional halt — replanning cannot fix these.
+_NO_REPLAN_ERRORS = (
+    MissingStateError,
+    StateConflictError,
+    ApprovalDeniedError,
+    UnknownCapabilityError,
+    CorruptStateError,
+)
 
 
 def compute_plan_hash(steps: list) -> str:
@@ -113,8 +132,10 @@ def run_executor(
             with ThreadPoolExecutor() as executor:
                 futures = []
                 for step in unit:
-                    futures.append(executor.submit(_execute_single_step, step, state, registry, plan_hash, run_id, agent_kwargs, state_lock))
-                # Wait for all to finish, will raise exception if any fail
+                    futures.append(executor.submit(
+                        _execute_single_step,
+                        step, state, registry, plan_hash, run_id, agent_kwargs, state_lock
+                    ))
                 for future in futures:
                     future.result()
         else:
@@ -122,18 +143,20 @@ def run_executor(
             try:
                 _execute_single_step(unit, state, registry, plan_hash, run_id, agent_kwargs, state_lock)
             except Exception as e:
-                # Do NOT replan if it's a structural error that won't be fixed by replanning
-                if isinstance(e, MissingStateError):
-                    raise e
+                # Structural/intentional halts — replanning cannot fix these, re-raise immediately.
+                if isinstance(e, _NO_REPLAN_ERRORS):
+                    raise
 
-                # Attempt dynamic replan before halting
+                # Transient failure — attempt dynamic replan before halting.
+                print(f"[Executor] Step '{unit['id']}' failed: {e}")
+                print(f"[Executor] Attempting dynamic replan...")
+
                 completed_step_ids = {s["id"] for s in plan["steps"][:unit_index]}
                 remaining = [
                     s for s in plan["steps"]
                     if s["id"] not in completed_step_ids and s["id"] != unit["id"]
                 ]
 
-                # Load fresh registry for replanner
                 package_root = Path(__file__).parent.parent
                 registry_path = package_root / "registry" / "registry.json"
                 registry_data = load_registry(registry_path)
@@ -141,19 +164,17 @@ def run_executor(
                 revised = replanner.replan(unit, state.read_all(), remaining, registry_data)
 
                 if revised is None or len(revised) == 0:
-                    # Replanning failed or not possible — halt as before
                     raise StepFailure(
                         step=unit,
                         resolved_inputs={},
                         missing_output="unknown",
-                        message=f"Replanning failed: {e}"
+                        message=f"Replanning failed or returned no steps. Original error: {e}"
                     ) from e
                 else:
-                    # Replace remaining execution units with revised steps
-                    # Sequential only for revised steps
-                    execution_units[unit_index+1:] = revised
+                    execution_units[unit_index + 1:] = revised
                     print(f"[Executor] Replanned — continuing with {len(revised)} revised steps.")
-                    continue # loop continues to next execution unit
+                    continue
+
 
 def _execute_single_step(
     step: dict,
@@ -173,7 +194,6 @@ def _execute_single_step(
     if state.is_completed(step_id) and step.get("idempotent", False):
         if not state.all_outputs_present(step["outputs"]):
             missing = [k for k in step["outputs"] if not state.has(k)]
-            from ai_workflows.errors import CorruptStateError
             raise CorruptStateError(
                 run_id=run_id,
                 step_id=step_id,
@@ -181,6 +201,7 @@ def _execute_single_step(
                 plan_hash=plan_hash,
                 snapshot_path=f"steps/{step_id}.json"
             )
+        print(f"  [SKIP] Step '{step_id}' already completed (idempotent).")
         return
 
     # ── INPUT RESOLUTION ───────────────────────────────────────
@@ -231,10 +252,9 @@ def _execute_single_step(
             # ── STATE WRITE (Thread Safe) ────────────────────────
             with state_lock:
                 state.write(step["outputs"], outputs_dict, step_id)
-                # ── SNAPSHOT ─────────────────────────────────────
                 state.snapshot(step_id, inputs, result, plan_hash)
 
-            # Success
+            print(f"  [DONE] Step '{step_id}' completed.")
             break
 
         except StepFailure:
@@ -243,4 +263,3 @@ def _execute_single_step(
                 continue
             else:
                 raise
-

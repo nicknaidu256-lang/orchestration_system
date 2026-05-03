@@ -56,9 +56,21 @@ class LLMAgent:
 
         try:
             result = self._call_cerebras(full_prompt, max_tokens, api_key)
+            content = result["content"]
+
+            # Strip markdown fences for code formats
+            if fmt in ("python", "javascript", "bash", "json"):
+                content = content.strip()
+                if content.startswith("```"):
+                    # Remove opening fence (e.g. ```python or ```)
+                    content = content.split("\n", 1)[1] if "\n" in content else content
+                    # Remove closing fence
+                    if content.endswith("```"):
+                        content = content.rsplit("```", 1)[0].strip()
+
             return {
                 "outputs": {
-                    "content": result["content"],
+                    "content": content,
                     "model": result["model"],
                     "tokens_used": result["tokens_used"],
                 }

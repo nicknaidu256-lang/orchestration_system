@@ -16,6 +16,8 @@ from ai_workflows.agents.llm_agent import LLMAgent
 from ai_workflows.agents.ats_agent import ATSAgent
 from ai_workflows.agents.web_fetch_agent import WebFetchAgent
 from ai_workflows.agents.job_description_agent import JobDescriptionAgent
+from ai_workflows.agents.browser_agent import BrowserAgent
+from ai_workflows.agents.docx_manipulation_agent import DocxManipulationAgent
 
 # Registry: agent_id -> Agent class
 _AGENT_REGISTRY = {
@@ -29,6 +31,8 @@ _AGENT_REGISTRY = {
     "ats_agent": ATSAgent,
     "web_fetch_agent": WebFetchAgent,
     "job_description_agent": JobDescriptionAgent,
+    "browser_agent": BrowserAgent,
+    "docx_manipulation_agent": DocxManipulationAgent,
 }
 
 

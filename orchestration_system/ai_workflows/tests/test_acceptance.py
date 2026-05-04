@@ -588,3 +588,7 @@ def test_ats_agent_output_structure():
     assert isinstance(outputs["matched_keywords"], list)
     assert isinstance(outputs["required_missing"], list)
     print("  [OK] ATSAgent structured output keys present")
+
+
+if __name__ == "__main__":
+    main()

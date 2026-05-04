@@ -1,82 +1,66 @@
 """
-OpenCode agent wrapper — handles code_generation capability.
-Protocol: JSON stdin/stdout with {"inputs": {...}} → {"outputs": {...}}
-
+OpenCode agent wrapper — handles opencode_task capability.
+Supports both native installs and Windows-side installs called from WSL.
 Agent ID: "opencode"
 """
 
-import json
 import subprocess
-from pathlib import Path
 from typing import Any, Dict
-
 from ai_workflows.agents import Agent
+from ai_workflows.agents.wsl_bridge import find_cli, run_cli, run_verify
 
 
 class OpenCodeAgent(Agent):
-    """
-    Agent that delegates code generation tasks to OpenCode CLI.
-    Communicates via JSON over stdin/stdout.
-    """
-
-    def __init__(self, opencode_path: str = "opencode"):
-        self.opencode_path = opencode_path
-        self._verify_available()
-
-    def _verify_available(self):
-        try:
-            subprocess.run(
-                [self.opencode_path, "--version"],
-                capture_output=True, text=True, timeout=5
-            )
-        except FileNotFoundError:
-            raise RuntimeError(
-                f"OpenCode not found at '{self.opencode_path}'. "
-                f"Ensure OpenCode CLI is installed and in PATH."
-            )
+    capability = "opencode_task"
 
     def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Execute code generation via OpenCode.
+        task = inputs.get("task", "")
+        working_dir = inputs.get("working_dir", ".")
+        verify_command = inputs.get("verify_command")
+        timeout = int(inputs.get("timeout", 300))
 
-        Protocol:
-        stdin:  {"inputs": <inputs_dict>}
-        stdout: {"outputs": {"code": "...", "explanation": "..."}}}
-
-        Args:
-            inputs: Resolved input dict from executor
-
-        Returns:
-            Dict with "outputs" key containing generated code
-        """
-        payload = {"inputs": inputs}
+        location = find_cli("opencode")
+        if location is None:
+            return {
+                "outputs": {
+                    "success": False,
+                    "output": "OpenCodeAgent: opencode CLI not found in PATH or Windows host. Install OpenCode.",
+                    "verify_result": "",
+                    "verify_passed": False
+                }
+            }
 
         try:
-            result = subprocess.run(
-                [self.opencode_path, "--json-io", "--no-prompt"],
-                input=json.dumps(payload),
-                capture_output=True,
-                text=True,
-                timeout=300
+            result = run_cli(
+                cli_name="opencode",
+                args=["run", "--message", task],
+                working_dir=working_dir,
+                timeout=timeout
             )
-
-            if result.returncode != 0:
-                raise subprocess.CalledProcessError(
-                    result.returncode, self.opencode_path, result.stdout, result.stderr
-                )
-
-            response = json.loads(result.stdout.strip())
-
-            # Enforce protocol: must have top-level "outputs"
-            if "outputs" not in response:
-                raise ValueError(
-                    f"OpenCode response missing 'outputs' key. Got: {list(response.keys())}"
-                )
-
-            return response
-
-        except json.JSONDecodeError as e:
-            raise ValueError(f"OpenCode returned invalid JSON: {e}")
+            output = result.stdout + result.stderr
+            success = result.returncode == 0
         except subprocess.TimeoutExpired:
-            raise TimeoutError("OpenCode execution timed out after 300s")
+            output = f"OpenCodeAgent: execution timed out after {timeout}s"
+            success = False
+        except Exception as e:
+            output = f"OpenCodeAgent error: {str(e)}"
+            success = False
 
+        verify_result = ""
+        verify_passed = False
+        if verify_command and success:
+            try:
+                v = run_verify(verify_command, working_dir=working_dir)
+                verify_result = v.stdout + v.stderr
+                verify_passed = v.returncode == 0
+            except Exception as e:
+                verify_result = f"Verification error: {str(e)}"
+
+        return {
+            "outputs": {
+                "success": success,
+                "output": output,
+                "verify_result": verify_result,
+                "verify_passed": verify_passed
+            }
+        }

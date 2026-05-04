@@ -1,18 +1,16 @@
-"""
-KiloCode agent wrapper — handles kilocode_task capability.
-Supports both native installs and Windows-side installs called from WSL.
-Agent ID: "kilocode"
-"""
-
-import os
 import subprocess
 from typing import Any, Dict
 from ai_workflows.agents import Agent
 from ai_workflows.agents.wsl_bridge import find_cli, run_cli, run_verify
 
 
-class KiloCodeAgent(Agent):
-    capability = "kilocode_task"
+class ClaudeCodeAgent(Agent):
+    """
+    Agent that invokes the Claude Code CLI non-interactively.
+    Supports both native installs and Windows-side installs called from WSL.
+    Capability: "claude_code_task"
+    """
+    capability = "claude_code_task"
 
     def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         task = inputs.get("task")
@@ -21,17 +19,14 @@ class KiloCodeAgent(Agent):
         timeout = inputs.get("timeout", 300)
 
         if not task:
-            raise ValueError("KiloCodeAgent requires 'task' parameter.")
+            raise ValueError("ClaudeCodeAgent requires a 'task' description.")
 
-        if not os.path.exists(working_dir):
-            os.makedirs(working_dir, exist_ok=True)
-
-        location = find_cli("kilo")
+        location = find_cli("claude")
         if location is None:
             return {
                 "outputs": {
                     "success": False,
-                    "output": "KiloCodeAgent: kilo CLI not found in PATH or Windows host. Install KiloCode.",
+                    "output": "ClaudeCodeAgent: claude CLI not found in PATH. Install Claude Code.",
                     "verify_result": "",
                     "verify_passed": False
                 }
@@ -39,29 +34,18 @@ class KiloCodeAgent(Agent):
 
         try:
             result = run_cli(
-                cli_name="kilo",
-                args=["--message", task],
+                cli_name="claude",
+                args=["--print", task],
                 working_dir=working_dir,
                 timeout=timeout
             )
-
-            # Fallback if --message flag not recognised
-            if result.returncode != 0 and "unknown" in result.stderr.lower():
-                result = run_cli(
-                    cli_name="kilo",
-                    args=["run", task],
-                    working_dir=working_dir,
-                    timeout=timeout
-                )
-
-            success = result.returncode == 0
             output = result.stdout + result.stderr
-
+            success = result.returncode == 0
         except subprocess.TimeoutExpired:
             return {
                 "outputs": {
                     "success": False,
-                    "output": f"KiloCodeAgent: Task timed out after {timeout}s",
+                    "output": "ClaudeCodeAgent: Task timed out.",
                     "verify_result": "",
                     "verify_passed": False
                 }
@@ -70,7 +54,7 @@ class KiloCodeAgent(Agent):
             return {
                 "outputs": {
                     "success": False,
-                    "output": f"KiloCodeAgent error: {str(e)}",
+                    "output": f"ClaudeCodeAgent: Unexpected error: {str(e)}",
                     "verify_result": "",
                     "verify_passed": False
                 }
@@ -84,7 +68,8 @@ class KiloCodeAgent(Agent):
                 verify_result = v.stdout + v.stderr
                 verify_passed = v.returncode == 0
             except Exception as e:
-                verify_result = f"Verification error: {str(e)}"
+                verify_result = f"Verification failed: {str(e)}"
+                verify_passed = False
 
         return {
             "outputs": {

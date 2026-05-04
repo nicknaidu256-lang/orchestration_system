@@ -1,0 +1,67 @@
+{
+  "workflow_id": "system_health_check",
+  "version": "1.0",
+  "created_by": "hermes",
+  "plan_hash": "550bd23124351bd4ce1fc196872c5ac70bda67da6e00f4b01bf99020b807ddc8",
+  "steps": [
+    {
+      "id": "read_executor",
+      "capability": "file_read",
+      "inputs": {
+        "operation": "file_read",
+        "path": "ai_workflows/executor/__init__.py"
+      },
+      "outputs": ["executor_source"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "summarise_executor",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "You are a senior software engineer. Read the following Python source code and write a clear plain-English explanation of what it does, how it works, and what its key design decisions are. Be specific and thorough.\n\nSource code:\n$executor_source"
+      },
+      "outputs": ["executor_summary"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "run_tests",
+      "capability": "verify_tests",
+      "inputs": {
+        "test_command": "python ai_workflows/tests/test_acceptance.py",
+        "working_dir": "."
+      },
+      "outputs": ["tests_passed", "test_output", "pass_count", "fail_count", "summary"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "write_report",
+      "capability": "text_generation",
+      "inputs": {
+        "prompt": "Write a professional system health report in markdown format with these exact sections:\n\n# System Health Report — AI Workflow Orchestration System\n\n## 1. What the Executor Does\n$executor_summary\n\n## 2. Acceptance Test Results\n- Tests passed: $tests_passed\n- Pass count: $pass_count\n- Fail count: $fail_count\n- Summary: $summary\n\n## 3. Verdict\nBased on the above test results, write a clear verdict on whether the system is working correctly. Be specific."
+      },
+      "outputs": ["report_content"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    },
+    {
+      "id": "save_report",
+      "capability": "file_write",
+      "inputs": {
+        "operation": "file_write",
+        "path": "output/system_health_report.md",
+        "content": "$report_content"
+      },
+      "outputs": ["path"],
+      "idempotent": true,
+      "retryable": false,
+      "requires_approval": false
+    }
+  ]
+}

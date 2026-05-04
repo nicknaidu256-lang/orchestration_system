@@ -66,31 +66,26 @@ class VerificationAgent(Agent):
             test_output = f"Test error: {str(e)}"
             tests_passed = False
 
-        pass_count = 0
-        fail_count = 0
+        # Count only lines that end with a [PASS]/[FAIL]/[OK] marker.
+        # This avoids false positives from summary lines like
+        # "ALL ACCEPTANCE TESTS PASSED" or "65 passed, 1 failed".
+        pass_count = sum(
+            1 for line in test_output.split('\n')
+            if re.search(r'\[PASS\]|\[OK\]', line)
+        )
+        fail_count = sum(
+            1 for line in test_output.split('\n')
+            if re.search(r'\[FAIL\]|\[ERROR\]', line)
+        )
 
-        output_lower = test_output.lower()
-        pass_pattern = re.compile(r'\[pass\]|\[ok\]|passed| ok |pass:', re.IGNORECASE)
-        fail_pattern = re.compile(r'\[fail\]|failed|error:|fail:', re.IGNORECASE)
-
-        for line in test_output.split('\n'):
-            if pass_pattern.search(line):
-                pass_count += 1
-            if fail_pattern.search(line):
-                fail_count += 1
-
+        # Fallback for pytest-style output ("X passed, Y failed")
         if pass_count == 0 and fail_count == 0:
-            match = re.search(r'(\d+)\s+passed', output_lower)
+            match = re.search(r'(\d+)\s+passed', test_output, re.IGNORECASE)
             if match:
                 pass_count = int(match.group(1))
-            match = re.search(r'(\d+)\s+failed', output_lower)
+            match = re.search(r'(\d+)\s+failed', test_output, re.IGNORECASE)
             if match:
                 fail_count = int(match.group(1))
-
-        # Final fallback: count [PASS] and [FAIL] lines directly
-        if pass_count == 0 and tests_passed:
-            pass_count = sum(1 for line in test_output.split('\n')
-                            if re.search(r'\[PASS\]|\[OK\]', line))
 
         summary = f"{pass_count} passed, {fail_count} failed"
 

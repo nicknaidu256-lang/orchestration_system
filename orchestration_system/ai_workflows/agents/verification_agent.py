@@ -87,6 +87,11 @@ class VerificationAgent(Agent):
             if match:
                 fail_count = int(match.group(1))
 
+        # Final fallback: count [PASS] and [FAIL] lines directly
+        if pass_count == 0 and tests_passed:
+            pass_count = sum(1 for line in test_output.split('\n')
+                            if re.search(r'\[PASS\]|\[OK\]', line))
+
         summary = f"{pass_count} passed, {fail_count} failed"
 
         return {

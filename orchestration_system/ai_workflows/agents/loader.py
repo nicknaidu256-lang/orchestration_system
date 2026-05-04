@@ -18,6 +18,9 @@ from ai_workflows.agents.web_fetch_agent import WebFetchAgent
 from ai_workflows.agents.job_description_agent import JobDescriptionAgent
 from ai_workflows.agents.browser_agent import BrowserAgent
 from ai_workflows.agents.docx_manipulation_agent import DocxManipulationAgent
+from ai_workflows.agents.gemini_cli_agent import GeminiCLIAgent
+from ai_workflows.agents.verification_agent import VerificationAgent
+from ai_workflows.agents.claude_code_agent import ClaudeCodeAgent
 
 # Registry: agent_id -> Agent class
 _AGENT_REGISTRY = {
@@ -33,6 +36,9 @@ _AGENT_REGISTRY = {
     "job_description_agent": JobDescriptionAgent,
     "browser_agent": BrowserAgent,
     "docx_manipulation_agent": DocxManipulationAgent,
+    "gemini_cli_agent": GeminiCLIAgent,
+    "verification_agent": VerificationAgent,
+    "claude_code_agent": ClaudeCodeAgent,
 }
 
 

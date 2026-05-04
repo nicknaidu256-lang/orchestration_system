@@ -4,9 +4,9 @@ import shutil
 from typing import Any, Dict
 from ai_workflows.agents import Agent
 
-class KiloCodeAgent(Agent):
+class GeminiCLIAgent(Agent):
     """
-    Agent for running autonomous coding tasks via KiloCode CLI.
+    Agent for running tasks via Gemini CLI.
     """
     def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         task = inputs.get("task")
@@ -15,27 +15,27 @@ class KiloCodeAgent(Agent):
         timeout = inputs.get("timeout", 300)
 
         if not task:
-            raise ValueError("KiloCodeAgent requires 'task' parameter.")
+            raise ValueError("GeminiCLIAgent requires 'task' parameter.")
 
         # Ensure working directory exists
         if not os.path.exists(working_dir):
             os.makedirs(working_dir, exist_ok=True)
 
-        # Check if kilo CLI is available
-        if not self._is_cli_available("kilo"):
+        # Check if gemini CLI is available
+        if not self._is_cli_available("gemini"):
             return {
                 "outputs": {
                     "success": False,
-                    "output": "KiloCodeAgent: kilo CLI not found. Install KiloCode.",
+                    "output": "GeminiCLIAgent: gemini CLI not found. Install Gemini CLI.",
                     "verify_result": "",
                     "verify_passed": False
                 }
             }
 
         try:
-            # Try kilo --message "{task}"
+            # Try gemini -p "{task}"
             result = subprocess.run(
-                ["kilo", "--message", task],
+                ["gemini", "-p", task],
                 cwd=working_dir,
                 capture_output=True,
                 text=True,
@@ -43,10 +43,10 @@ class KiloCodeAgent(Agent):
                 shell=True
             )
 
-            # Fallback if --message fails (e.g. unknown flag)
+            # Fallback if -p fails (e.g. unknown flag)
             if result.returncode != 0 and ("unknown" in result.stderr.lower()):
                 result = subprocess.run(
-                    ["kilo", "run", task],
+                    ["gemini", "--prompt", task],
                     cwd=working_dir,
                     capture_output=True,
                     text=True,
@@ -84,7 +84,7 @@ class KiloCodeAgent(Agent):
             return {
                 "outputs": {
                     "success": False,
-                    "output": f"KiloCodeAgent: Task timed out after {timeout}s",
+                    "output": f"GeminiCLIAgent: Task timed out after {timeout}s",
                     "verify_result": "",
                     "verify_passed": False
                 }
@@ -93,7 +93,7 @@ class KiloCodeAgent(Agent):
             return {
                 "outputs": {
                     "success": False,
-                    "output": f"KiloCodeAgent error: {str(e)}",
+                    "output": f"GeminiCLIAgent error: {str(e)}",
                     "verify_result": "",
                     "verify_passed": False
                 }
@@ -101,7 +101,7 @@ class KiloCodeAgent(Agent):
 
     def _is_cli_available(self, name: str) -> bool:
         try:
-            # Use shell=True for Windows compatibility with cmd/powershell
+            # Use shell=True for Windows compatibility
             subprocess.run([name, "--version"], capture_output=True, shell=True)
             return True
         except:

@@ -31,6 +31,8 @@
     "graphify_query": "terminal",
     "report_builder": "terminal",
     "web_fetch": "web_fetch_agent",
-    "job_description_loader": "job_description_agent"
+    "job_description_loader": "job_description_agent",
+    "kilocode_task": "kilocode",
+    "gemini_cli_task": "gemini_cli_agent"
   }
 }

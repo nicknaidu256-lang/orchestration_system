@@ -1,6 +1,6 @@
 """
 LLMAgent — handles text_generation and code_generation capabilities.
-Uses Cerebras API. Falls back to placeholder if API unavailable.
+Uses Cerebras API. Automatically falls back to Gemini on rate limits (429).
 
 Output contract:
 - Always returns {"outputs": {"content": str, "model": str, "tokens_used": int}}
@@ -15,24 +15,24 @@ import urllib.error
 from pathlib import Path
 
 
-def _load_api_key() -> str | None:
-    key = os.environ.get("CEREBRAS_API_KEY")
-    if key:
-        return key
-    env_path = Path(__file__).parents[3] / "Resume_Intactor" / ".env"
-    if env_path.exists():
-        for line in env_path.read_text().splitlines():
-            if line.startswith("CEREBRAS_API_KEY="):
-                return line.split("=", 1)[1].strip()
-    return None
-
-
 class LLMAgent:
-    """Real LLM agent using Cerebras API."""
+    """Real LLM agent using Cerebras API with Gemini fallback."""
 
     CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions"
+    GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
     DEFAULT_MODEL = "llama3.1-8b"
     DEFAULT_MAX_TOKENS = 2048
+
+    def _load_key(self, env_var_name: str) -> str | None:
+        key = os.environ.get(env_var_name)
+        if key:
+            return key
+        env_path = Path(__file__).parents[3] / "Resume_Intactor" / ".env"
+        if env_path.exists():
+            for line in env_path.read_text().splitlines():
+                if line.startswith(f"{env_var_name}="):
+                    return line.split("=", 1)[1].strip()
+        return None
 
     def execute(self, inputs: dict) -> dict:
         prompt = inputs.get("prompt") or inputs.get("template") or ""
@@ -50,28 +50,37 @@ class LLMAgent:
         elif fmt == "markdown":
             full_prompt += "\n\nRespond in clean markdown format."
 
-        api_key = _load_api_key()
-        if not api_key:
-            return {
-                "outputs": {
-                    "content": f"[LLMAgent fallback — no API key] Prompt was: {prompt[:100]}",
-                    "model": "none",
-                    "tokens_used": 0,
+        # Try Cerebras first
+        cerebras_key = self._load_key("CEREBRAS_API_KEY")
+        if cerebras_key:
+            try:
+                result = self._call_cerebras(full_prompt, max_tokens, cerebras_key)
+                content = result["content"]
+                if fmt in ("python", "javascript", "bash", "json"):
+                    content = self._strip_fences(content)
+                return {
+                    "outputs": {
+                        "content": content,
+                        "model": result["model"],
+                        "tokens_used": result["tokens_used"],
+                    }
                 }
-            }
+            except urllib.error.HTTPError as e:
+                if e.code != 429:
+                    raise RuntimeError(f"Cerebras API error {e.code}: {e.reason}") from e
+                # 429 — fall through to Gemini
+            except Exception as e:
+                raise RuntimeError(f"Cerebras call failed: {e}") from e
 
+        # Gemini fallback (only reached if Cerebras 429 or no Cerebras key)
+        gemini_key = self._load_key("GEMINI_API_KEY")
+        if not gemini_key:
+            raise RuntimeError("Cerebras rate-limited and no GEMINI_API_KEY available")
         try:
-            result = self._call_cerebras(full_prompt, max_tokens, api_key)
+            result = self._call_gemini(full_prompt, max_tokens, gemini_key)
             content = result["content"]
-
-            # Strip markdown fences for code formats
             if fmt in ("python", "javascript", "bash", "json"):
-                content = content.strip()
-                if content.startswith("```"):
-                    content = content.split("\n", 1)[1] if "\n" in content else content
-                    if content.endswith("```"):
-                        content = content.rsplit("```", 1)[0].strip()
-
+                content = self._strip_fences(content)
             return {
                 "outputs": {
                     "content": content,
@@ -80,13 +89,15 @@ class LLMAgent:
                 }
             }
         except Exception as e:
-            return {
-                "outputs": {
-                    "content": f"[LLMAgent error — {e}] Prompt was: {prompt[:100]}",
-                    "model": "error",
-                    "tokens_used": 0,
-                }
-            }
+            raise RuntimeError(f"Gemini fallback failed: {e}") from e
+
+    def _strip_fences(self, content: str) -> str:
+        content = content.strip()
+        if content.startswith("```"):
+            content = content.split("\n", 1)[1] if "\n" in content else content
+            if content.endswith("```"):
+                content = content.rsplit("```", 1)[0].strip()
+        return content
 
     def _call_cerebras(self, prompt: str, max_tokens: int, api_key: str) -> dict:
         payload = {
@@ -105,10 +116,37 @@ class LLMAgent:
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=120) as resp:
             body = json.loads(resp.read().decode("utf-8"))
         return {
             "content": body["choices"][0]["message"]["content"],
             "model": body.get("model", self.DEFAULT_MODEL),
             "tokens_used": body.get("usage", {}).get("total_tokens", 0),
+        }
+
+    def _call_gemini(self, prompt: str, max_tokens: int, api_key: str) -> dict:
+        url = f"{self.GEMINI_URL}?key={api_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"maxOutputTokens": max_tokens}
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8")
+            print(f"Gemini API error body: {error_body}")
+            raise RuntimeError(f"Gemini API error: {error_body}") from e
+
+        return {
+            "content": body["candidates"][0]["content"]["parts"][0]["text"],
+            "model": body.get("modelName", "gemini-1.5-flash"),
+            "tokens_used": body.get("usageMetadata", {}).get("totalTokenCount", 0),
         }

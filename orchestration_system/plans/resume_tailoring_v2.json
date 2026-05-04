@@ -2,14 +2,14 @@
   "workflow_id": "resume_tailoring_v2",
   "version": "2.0",
   "created_by": "hermes",
-  "plan_hash": "62a6d0768d3b95aa22bede2161f69b1667dc432e6387363fa26c5496d9dfd5bc",
+  "plan_hash": "1bf62fe7f6fe22fe06ce60c189f7e17e8cdfbe8624bf651d8a4df254a5df00a7",
   "steps": [
     {
-      "id": "read_job_description",
-      "capability": "file_read",
+      "id": "load_job_description",
+      "capability": "job_description_loader",
       "inputs": {
-        "operation": "file_read",
-        "path": "$job_file"
+        "job_file": "$job_file",
+        "job_url": "$job_url"
       },
       "outputs": [
         "job_description"

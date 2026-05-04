@@ -13,6 +13,9 @@ from ai_workflows.agents.terminal import TerminalAgent
 from ai_workflows.agents.web_search_agent import WebSearchAgent
 from ai_workflows.agents.docx_agent import DocxAgent
 from ai_workflows.agents.llm_agent import LLMAgent
+from ai_workflows.agents.ats_agent import ATSAgent
+from ai_workflows.agents.web_fetch_agent import WebFetchAgent
+from ai_workflows.agents.job_description_agent import JobDescriptionAgent
 
 # Registry: agent_id -> Agent class
 _AGENT_REGISTRY = {
@@ -23,6 +26,9 @@ _AGENT_REGISTRY = {
     "web_search_agent": WebSearchAgent,
     "docx_agent": DocxAgent,
     "llm_agent": LLMAgent,
+    "ats_agent": ATSAgent,
+    "web_fetch_agent": WebFetchAgent,
+    "job_description_agent": JobDescriptionAgent,
 }
 
 

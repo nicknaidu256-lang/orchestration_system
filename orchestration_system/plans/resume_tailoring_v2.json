@@ -2,7 +2,7 @@
   "workflow_id": "resume_tailoring_v2",
   "version": "2.0",
   "created_by": "hermes",
-  "plan_hash": "ab5693d2d1f83f1240797ce9be2870f012e2880b6b6cb180392eea4a3779ce67",
+  "plan_hash": "63cf0e3c324f8d62eecebae9facf3ad5db6b7b1ab50bc95ec03bb70f9111e840",
   "steps": [
     {
       "id": "read_job_description",
@@ -154,8 +154,9 @@
       "id": "format_ats_report",
       "capability": "text_generation",
       "inputs": {
-        "prompt": "Format this ATS analysis as a clean plain-text report:\n\nATS Compatibility Score: $ats_score / 100\n\nTop Keyword Matches: $matched_keywords\n\nMissing Keywords: $missing_keywords\nRequired Missing: $required_missing\nPreferred Missing: $preferred_missing\n\nRecommendations: $recommendations",
-        "format": "plain"
+        "prompt": "Output ONLY the formatted report below. No preamble, no explanation.\n\nFormat this ATS analysis as a clean plain-text report:\n\nATS Compatibility Score: $ats_score / 100\n\nTop Keyword Matches: $matched_keywords\n\nMissing Keywords: $missing_keywords\nRequired Missing: $required_missing\nPreferred Missing: $preferred_missing\n\nRecommendations: $recommendations",
+        "format": "plain",
+        "max_tokens": 1024
       },
       "outputs": [
         "ats_report_text"

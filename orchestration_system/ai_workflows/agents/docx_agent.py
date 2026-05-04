@@ -28,19 +28,38 @@ class DocxAgent(Agent):
             }
 
         # Write operation
-        content = inputs.get("content", "")
         path = inputs.get("path", "output/document.docx")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
 
         doc = Document()
-        doc.add_paragraph(content)
 
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        # Handle structured content if it's passed as a list of dicts/sections
+        # otherwise default to single paragraph
+        content = inputs.get("content", "")
+        if isinstance(content, str):
+            # Split by double newline for paragraph breaks
+            paragraphs = content.split('\n\n')
+            for para in paragraphs:
+                if para.startswith("# "):
+                    doc.add_heading(para[2:], level=1)
+                elif para.startswith("## "):
+                    doc.add_heading(para[3:], level=2)
+                else:
+                    doc.add_paragraph(para)
+        else:
+            # Fallback for simple content
+            doc.add_paragraph(str(content))
+
         doc.save(path)
 
-        return {
-            "outputs": {
-                "file_path": path,
-                "success": True,
-                "size_bytes": os.path.getsize(path)
-            }
+        outputs = {
+            "file_path": path,
+            "success": True,
+            "size_bytes": os.path.getsize(path)
         }
+
+        output_key = inputs.get("output_key")
+        if output_key:
+            outputs[output_key] = True
+
+        return {"outputs": outputs}

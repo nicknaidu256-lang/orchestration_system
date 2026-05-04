@@ -2,7 +2,7 @@
   "workflow_id": "resume_tailoring_v2",
   "version": "2.0",
   "created_by": "hermes",
-  "plan_hash": "63cf0e3c324f8d62eecebae9facf3ad5db6b7b1ab50bc95ec03bb70f9111e840",
+  "plan_hash": "62a6d0768d3b95aa22bede2161f69b1667dc432e6387363fa26c5496d9dfd5bc",
   "steps": [
     {
       "id": "read_job_description",
@@ -137,9 +137,9 @@
     },
     {
       "id": "save_resume",
-      "capability": "file_write",
+      "capability": "docx_write",
       "inputs": {
-        "path": "output/Tailored_Resume.txt",
+        "path": "output/Tailored_Resume.docx",
         "content": "$optimized_resume_text",
         "output_key": "resume_saved"
       },

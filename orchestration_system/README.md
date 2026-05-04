@@ -1,43 +1,46 @@
 # AI Workflow Orchestration System
 
-This system provides a structured, deterministic framework for executing complex, multi-agent AI workflows. It features state management, dynamic replanning, and robust LLM provider abstraction to ensure reliable execution of tasks like resume tailoring and ATS analysis.
+This system provides a deterministic framework for executing complex, multi-agent AI workflows. It separates orchestration logic from execution; Hermes plans the workflow steps once, and the executor runs them deterministically in a secure sandbox, ensuring consistency and reliability without LLM intervention during the execution phase.
 
 ## Quick Start
 
-1.  **Installation**: Ensure Python 3.14+ is installed. Install dependencies:
-    ```bash
-    pip install -r config/requirements/base.txt
-    ```
-2.  **Environment Setup**: Create `Resume_Intactor/.env` with your API keys:
-    ```
-    CEREBRAS_API_KEY=<your-key>
-    GEMINI_API_KEY=<your-key>
-    ```
-3.  **Validation**: Verify the setup by running the pipeline validation plan:
-    ```bash
-    python -m ai_workflows.cli run plans/pipeline_validation.json
-    ```
+Prerequisites: Python 3.10+, pip install -r requirements.txt, copy .env.example to ..\Resume_Intactor\.env and add API keys.
 
-## Running the Resume Tailoring Pipeline
+Run the validation pipeline to confirm everything works:
+  python -m ai_workflows.cli run plans/pipeline_validation.json
 
-The system can tailor resumes based on a job description (file or URL) and an existing resume (.docx).
+## Resume Tailoring Pipeline
 
-```bash
-python -m ai_workflows.cli run plans/resume_tailoring_v2.json \
-  --input job_url=https://example.com/job-posting \
-  --input resume_file=resumes/my_resume.docx
-```
+How to use it with a local file:
+  python -m ai_workflows.cli run plans/resume_tailoring_v2.json --input job_file=jobs/your_job.txt --input resume_file=resumes/your_resume.docx
 
-## Adding a New Capability
+How to use it with a job posting URL:
+  python -m ai_workflows.cli run plans/resume_tailoring_v2.json --input job_url=https://example.com/jobs/role --input resume_file=resumes/your_resume.docx
 
-1.  **Define Agent**: Implement the agent class in `ai_workflows/agents/` inheriting from `ai_workflows.agents.Agent`.
-2.  **Register Agent**: Add the agent to `ai_workflows/agents/loader.py` in the `_AGENT_REGISTRY`.
-3.  **Map Capability**: Update `ai_workflows/registry/registry.json` to map your new capability name to the agent ID defined in the loader.
+Outputs: output/Tailored_Resume.docx, output/ATS_Report.txt
+
+## How to Add a New Capability
+
+4 steps:
+1. Create ai_workflows/agents/your_agent.py implementing Agent.execute()
+2. Register it in ai_workflows/registry/registry.json: "your_capability": "your_agent"
+3. Add the import in ai_workflows/agents/loader.py
+4. Reference "capability": "your_capability" in any plan step
 
 ## Environment Variables
 
-| Variable | Description |
-| :--- | :--- |
-| `CEREBRAS_API_KEY` | Primary API key for LLM tasks |
-| `GEMINI_API_KEY` | Fallback API key for LLM tasks |
-| `LOG_LEVEL` | Logging level (default: INFO) |
+| Variable | Purpose | Required |
+| :--- | :--- | :--- |
+| CEREBRAS_API_KEY | Primary LLM provider | Yes |
+| GEMINI_API_KEY | Fallback LLM (auto on 429) | Recommended |
+| CEREBRAS_MODEL | Model name override | No (default: llama3.1-8b) |
+| GEMINI_MODEL | Model name override | No (default: gemini-2.5-flash) |
+
+File location: C:\Users\abhil\Project_A\Resume_Intactor\.env
+
+## Running Tests
+  python ai_workflows/tests/test_acceptance.py
+
+## Resuming a Crashed Run
+  python -m ai_workflows.cli run plans/resume_tailoring_v2.json --resume <run-id>
+  Run IDs are in ~/.ai-workflows/runs/

@@ -10,6 +10,18 @@ from typing import Any, Dict
 from ai_workflows.agents import Agent
 from ai_workflows.agents.wsl_bridge import find_cli, run_cli, run_verify
 
+# @kilocode/cli registers as 'kilo-code'; older installs used 'kilo'
+_KILO_CMD = None
+
+def _get_kilo_cmd():
+    global _KILO_CMD
+    if _KILO_CMD is None:
+        for candidate in ["kilo-code", "kilo"]:
+            if find_cli(candidate):
+                _KILO_CMD = candidate
+                break
+    return _KILO_CMD
+
 
 class KiloCodeAgent(Agent):
     capability = "kilocode_task"
@@ -26,12 +38,12 @@ class KiloCodeAgent(Agent):
         if not os.path.exists(working_dir):
             os.makedirs(working_dir, exist_ok=True)
 
-        location = find_cli("kilo")
-        if location is None:
+        cmd = _get_kilo_cmd()
+        if cmd is None:
             return {
                 "outputs": {
                     "success": False,
-                    "output": "KiloCodeAgent: kilo CLI not found in PATH or Windows host. Install KiloCode.",
+                    "output": "KiloCodeAgent: kilo-code/kilo CLI not found. Install via: npm install -g @kilocode/cli",
                     "verify_result": "",
                     "verify_passed": False
                 }
@@ -39,7 +51,7 @@ class KiloCodeAgent(Agent):
 
         try:
             result = run_cli(
-                cli_name="kilo",
+                cli_name=cmd,
                 args=["--message", task],
                 working_dir=working_dir,
                 timeout=timeout
@@ -48,7 +60,7 @@ class KiloCodeAgent(Agent):
             # Fallback if --message flag not recognised
             if result.returncode != 0 and "unknown" in result.stderr.lower():
                 result = run_cli(
-                    cli_name="kilo",
+                    cli_name=cmd,
                     args=["run", task],
                     working_dir=working_dir,
                     timeout=timeout

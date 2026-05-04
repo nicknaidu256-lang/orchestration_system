@@ -5,16 +5,6 @@ When the orchestration system runs inside WSL/Ubuntu but the coding CLIs
 (Claude Code, OpenCode, KiloCode, Gemini CLI) are installed on the Windows
 host, this module provides helpers to call those Windows executables from
 within WSL using the cmd.exe interop layer.
-
-Usage:
-    from ai_workflows.agents.wsl_bridge import run_cli
-
-    result = run_cli(
-        cli_name="claude",
-        args=["--print", "my task"],
-        working_dir=".",
-        timeout=300
-    )
 """
 
 import os
@@ -33,30 +23,67 @@ def is_wsl() -> bool:
         return False
 
 
+def _try_cmd_exe(name: str) -> bool:
+    """Check if a CLI is callable via cmd.exe (Windows PATH)."""
+    try:
+        result = subprocess.run(
+            ["cmd.exe", "/c", f"where {name}"],
+            capture_output=True, text=True, timeout=10
+        )
+        return result.returncode == 0 and result.stdout.strip() != ""
+    except Exception:
+        return False
+
+
+def _is_windows_script(path: str) -> bool:
+    """
+    Return True if the found path is a Windows batch/cmd script that
+    cannot execute natively in Linux and needs cmd.exe routing.
+    """
+    if not path:
+        return False
+    # Try executing it — if it fails with the npm "wrong version" message
+    # or a Windows-script error, it needs cmd.exe
+    try:
+        result = subprocess.run(
+            [path, "--version"],
+            capture_output=True, text=True, timeout=8
+        )
+        combined = (result.stdout + result.stderr).lower()
+        if "package manager failed to install" in combined:
+            return True
+        if "cannot execute binary file" in combined:
+            return True
+        return False
+    except (PermissionError, OSError):
+        # Can't execute at all — definitely needs cmd.exe
+        return True
+    except Exception:
+        return False
+
+
 def find_cli(name: str) -> Optional[str]:
     """
     Try to locate a CLI by name.
-    1. Check native PATH (works on both Linux-native and Windows-native installs).
-    2. If in WSL, check common Windows install locations via /mnt/c.
-    Returns the command/path to use, or None if not found.
+    Returns:
+      - A native Linux path string if it runs natively in WSL
+      - "__via_cmd__" if it must be called through cmd.exe (Windows-only script)
+      - None if not found anywhere
     """
-    # Native path first
+    # Check native PATH first
     native = shutil.which(name)
     if native:
-        return native
+        # Verify it actually runs natively (not a Windows batch wrapper)
+        if not _is_windows_script(native):
+            return native
+        # It's a Windows script — route via cmd.exe if available
+        if is_wsl() and _try_cmd_exe(name):
+            return "__via_cmd__"
+        return None
 
-    # WSL: try Windows PATH via cmd.exe
-    if is_wsl():
-        try:
-            result = subprocess.run(
-                ["cmd.exe", "/c", f"where {name}"],
-                capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                # cmd.exe found it — we'll use cmd.exe /c to call it
-                return "__via_cmd__"
-        except Exception:
-            pass
+    # Not in native PATH — if in WSL, try Windows PATH via cmd.exe
+    if is_wsl() and _try_cmd_exe(name):
+        return "__via_cmd__"
 
     return None
 
@@ -71,21 +98,10 @@ def run_cli(
     """
     Run a CLI command, automatically bridging through cmd.exe if in WSL
     and the CLI is only available on the Windows side.
-
-    Args:
-        cli_name: The base CLI name, e.g. "claude", "kilo", "opencode"
-        args: Arguments to pass after the CLI name
-        working_dir: Working directory (Linux path; converted for cmd.exe)
-        timeout: Timeout in seconds
-        env: Optional environment variables
-
-    Returns:
-        subprocess.CompletedProcess with stdout, stderr, returncode
     """
     location = find_cli(cli_name)
 
     if location is None:
-        # Not found anywhere — return a synthetic failure result
         return subprocess.CompletedProcess(
             args=[cli_name] + args,
             returncode=127,
@@ -94,9 +110,7 @@ def run_cli(
         )
 
     if location == "__via_cmd__":
-        # Build a cmd.exe /c call, converting the working dir to a Windows path
         win_cwd = _to_windows_path(working_dir)
-        # Escape args for cmd
         escaped_args = " ".join(_escape_arg(a) for a in args)
         cmd_line = f"cd /d {win_cwd} && {cli_name} {escaped_args}"
         return subprocess.run(
@@ -107,7 +121,6 @@ def run_cli(
             env=env
         )
     else:
-        # Native — call directly
         return subprocess.run(
             [location] + args,
             capture_output=True,
@@ -121,7 +134,6 @@ def run_cli(
 def run_verify(command: str, working_dir: str = ".", timeout: int = 120) -> subprocess.CompletedProcess:
     """
     Run a verify/shell command, bridging through cmd.exe if in WSL.
-    The command is a shell string (not a list).
     """
     if is_wsl():
         win_cwd = _to_windows_path(working_dir)
@@ -138,11 +150,7 @@ def run_verify(command: str, working_dir: str = ".", timeout: int = 120) -> subp
 
 
 def _to_windows_path(linux_path: str) -> str:
-    """
-    Convert a Linux/WSL path to a Windows path.
-    /mnt/c/Users/... -> C:\\Users\\...
-    Relative paths are resolved against the current directory.
-    """
+    """Convert a Linux/WSL path to a Windows path."""
     if not linux_path or linux_path == ".":
         linux_path = os.getcwd()
 
@@ -154,7 +162,6 @@ def _to_windows_path(linux_path: str) -> str:
         rest = parts[1].replace("/", "\\") if len(parts) > 1 else ""
         return f"{drive}\\{rest}"
 
-    # Fallback — just return as-is and hope for the best
     return linux_path
 
 

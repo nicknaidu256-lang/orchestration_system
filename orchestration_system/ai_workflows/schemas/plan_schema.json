@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AI Workflow Plan",
+  "description": "Schema for a structured workflow plan produced by the planner.",
+  "type": "object",
+  "required": ["workflow_id", "version", "created_by", "plan_hash", "steps"],
+  "properties": {
+    "workflow_id": {
+      "type": "string",
+      "description": "Unique identifier for this workflow type"
+    },
+    "version": {
+      "type": "string",
+      "description": "Plan schema version"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Agent that produced this plan (e.g. 'hermes')"
+    },
+    "plan_hash": {
+      "type": "string",
+      "description": "SHA256 of steps array (canonicalized)"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "capability", "inputs", "outputs"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique step identifier within this plan"
+          },
+          "capability": {
+            "type": "string",
+            "description": "Capability name that maps to an agent"
+          },
+          "inputs": {
+            "type": "object",
+            "description": "Step inputs; $ref values reference state keys"
+          },
+          "outputs": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "List of state keys this step will produce"
+          },
+          "idempotent": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, completed step with all outputs present will be skipped on resume"
+          },
+          "retryable": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, executor will retry once on StepFailure"
+          },
+          "requires_approval": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, executor will pause for user approval before executing"
+          }
+        }
+      }
+    }
+  }
+}

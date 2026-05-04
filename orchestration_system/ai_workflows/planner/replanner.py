@@ -114,10 +114,14 @@ class Replanner:
             "plan_hash": compute_plan_hash(revised_steps),
             "steps": revised_steps,
         }
-        errors = validate_plan(dummy_plan)
-        if errors:
-            print(f"[Replanner] Revised steps failed validation: {errors}")
+        try:
+            validate_plan(dummy_plan)
+        except ValueError as e:
+            print(f"[Replanner] Revised steps failed validation: {e}")
             return None
+
+        # Add a print to see the full response
+        print(f"[Replanner] Cerebras response: {raw}")
 
         print(f"[Replanner] Revised plan accepted — {len(revised_steps)} steps.")
         return revised_steps

@@ -19,7 +19,7 @@ class LLMAgent:
     """Real LLM agent using Cerebras API with Gemini fallback."""
 
     CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions"
-    GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     DEFAULT_MODEL = "llama3.1-8b"
     DEFAULT_MAX_TOKENS = 2048
 
@@ -31,7 +31,10 @@ class LLMAgent:
         if env_path.exists():
             for line in env_path.read_text().splitlines():
                 if line.startswith(f"{env_var_name}="):
-                    return line.split("=", 1)[1].strip()
+                    val = line.split("=", 1)[1].strip()
+                    print(f"DEBUG: Loaded {env_var_name} from {env_path}")
+                    return val
+        print(f"DEBUG: Failed to load {env_var_name}")
         return None
 
     def execute(self, inputs: dict) -> dict:

@@ -2,7 +2,7 @@
   "workflow_id": "resume_tailoring_v2",
   "version": "2.0",
   "created_by": "hermes",
-  "plan_hash": "f2a2fe5722a91290689f52984fa1ed9f3579dd69a364d3c2bdd38d3c5459829c",
+  "plan_hash": "ab5693d2d1f83f1240797ce9be2870f012e2880b6b6cb180392eea4a3779ce67",
   "steps": [
     {
       "id": "read_job_description",
@@ -64,7 +64,7 @@
       "id": "generate_bullets",
       "capability": "text_generation",
       "inputs": {
-        "prompt": "You are a resume writer. Your ONLY job is to produce bullet points. Output NOTHING except bullet lines \u00e2\u20ac\u201d no headers, no summary, no skills section, no name, no contact info. Only bullets.\n\nExtract and rewrite the experience content from this resume as 4-6 strong resume bullets:\n$existing_resume_text\n\nEach bullet must:\n- Start with the bullet character \u00e2\u20ac\u00a2\n- Begin with a strong action verb (e.g. Built, Reduced, Led, Designed)\n- Include a metric or outcome\n- Be tailored to this target role: $job_requirements\n\nOutput only the bullet lines. Nothing else.",
+        "prompt": "You are a resume writer. Your ONLY job is to produce bullet points. Output NOTHING except bullet lines — no headers, no summary, no skills section, no name, no contact info. Only bullets.\n\nExtract and rewrite the experience content from this resume as 4-6 strong resume bullets:\n$existing_resume_text\n\nEach bullet must:\n- Start with the bullet character •\n- Begin with a strong action verb (e.g. Built, Reduced, Led, Designed)\n- Include a metric or outcome\n- Be tailored to this target role: $job_requirements\n\nOutput only the bullet lines. Nothing else.",
         "format": "plain"
       },
       "outputs": [
@@ -78,7 +78,7 @@
       "id": "generate_skills",
       "capability": "text_generation",
       "inputs": {
-        "prompt": "From this candidate's background: $existing_resume_text Generate a skills section as a comma-separated list of 8-10 technical skills prioritised by relevance to: $job_requirements",
+        "prompt": "From this candidate's background: $existing_resume_text Generate a skills section as a comma-separated list of 8-10 technical skills prioritised by relevance to: $job_requirements. Output only a comma-separated list on a single line. No prose, no headers, no numbering, no extra explanation.",
         "format": "plain"
       },
       "outputs": [
@@ -92,7 +92,7 @@
       "id": "assemble_resume",
       "capability": "text_generation",
       "inputs": {
-        "prompt": "Assemble a clean plain-text resume. Use ONLY the content provided below \u00e2\u20ac\u201d do not invent anything. Format professionally with clear headers.\n\nSUMMARY:\n$resume_summary\n\nSKILLS:\n$skills_section\n\nEXPERIENCE:\n$experience_bullets\n\nReturn the complete formatted resume text only.",
+        "prompt": "Assemble a clean plain-text resume. Use ONLY the content provided below — do not invent anything. Format professionally with clear headers.\n\nSUMMARY:\n$resume_summary\n\nSKILLS:\n$skills_section\n\nEXPERIENCE:\n$experience_bullets\n\nReturn the complete formatted resume text only.",
         "format": "plain"
       },
       "outputs": [
@@ -113,7 +113,9 @@
         "ats_score",
         "matched_keywords",
         "missing_keywords",
-        "recommendations"
+        "recommendations",
+        "required_missing",
+        "preferred_missing"
       ],
       "idempotent": false,
       "retryable": false,
@@ -123,7 +125,7 @@
       "id": "optimize_resume",
       "capability": "text_generation",
       "inputs": {
-        "prompt": "You are a professional resume editor. Your job is to improve this resume based on ATS analysis feedback, WITHOUT inventing experience the candidate does not have.\n\nORIGINAL RESUME:\n$full_resume_text\n\nATS FEEDBACK:\n- Score: $ats_score / 100\n- Missing keywords: $missing_keywords\n- Recommendations: $recommendations\n\nRULES:\n1. Rewrite and strengthen the existing content to better surface relevant skills already present in the resume.\n2. If a missing keyword reflects a skill the candidate clearly has (e.g. \"API design\" when they built REST APIs), naturally incorporate the keyword into existing bullets or the summary.\n3. Do NOT add skills, tools, or experiences the candidate does not have. If a missing keyword (e.g. Kubernetes) has no evidence in the resume, do not add it \u00e2\u20ac\u201d leave a comment: [MISSING: Kubernetes \u00e2\u20ac\u201d candidate should add if applicable]\n4. Keep all section headers and structure identical to the original.\n5. Return only the full resume text. No explanation, no preamble.",
+        "prompt": "You are a professional resume editor. Your job is to improve this resume based on ATS analysis feedback, WITHOUT inventing experience the candidate does not have.\n\nORIGINAL RESUME:\n$full_resume_text\n\nATS FEEDBACK:\n- Score: $ats_score / 100\n- Missing keywords: $missing_keywords\n- Recommendations: $recommendations\n\nRULES:\n1. Rewrite and strengthen the existing content to better surface relevant skills already present in the resume.\n2. If a missing keyword reflects a skill the candidate clearly has (e.g. \"API design\" when they built REST APIs), naturally incorporate the keyword into existing bullets or the summary.\n3. Do NOT add skills, tools, or experiences the candidate does not have. If a missing keyword (e.g. Kubernetes) has no evidence in the resume, do not add it — leave a comment: [MISSING: Kubernetes — candidate should add if applicable]\n4. Keep all section headers and structure identical to the original.\n5. Preserve the candidate's name and all contact information exactly as they appear in the original resume. Do not replace with placeholders.\n6. Return only the full resume text. No explanation, no preamble.",
         "format": "plain"
       },
       "outputs": [
@@ -152,7 +154,7 @@
       "id": "format_ats_report",
       "capability": "text_generation",
       "inputs": {
-        "prompt": "Format this ATS analysis as a clean plain-text report:\n\nATS Compatibility Score: $ats_score / 100\n\nTop Keyword Matches: $matched_keywords\n\nMissing Keywords: $missing_keywords\n\nRecommendations: $recommendations",
+        "prompt": "Format this ATS analysis as a clean plain-text report:\n\nATS Compatibility Score: $ats_score / 100\n\nTop Keyword Matches: $matched_keywords\n\nMissing Keywords: $missing_keywords\nRequired Missing: $required_missing\nPreferred Missing: $preferred_missing\n\nRecommendations: $recommendations",
         "format": "plain"
       },
       "outputs": [

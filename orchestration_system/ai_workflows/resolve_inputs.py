@@ -86,7 +86,12 @@ def resolve_inputs(inputs: dict, state) -> dict:
                     f"This means a prior step did not produce this output, "
                     f"or the plan references a key that was never written."
                 )
-            return _to_string(value)
+            if isinstance(value, list):
+                return ", ".join(str(v) for v in value)
+            elif isinstance(value, dict):
+                return json.dumps(value)
+            else:
+                return str(value)
 
         resolved[k] = _REF_PATTERN.sub(replacer, v)
 
